@@ -5,6 +5,7 @@ const {
   Collection,
   EmbedBuilder,
   Events,
+  MessageFlags,
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
@@ -105,7 +106,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     member.permissions.has("Administrator");
 
   if (!isAdmin) {
-    return interaction.reply({ content: "❌ 관리자만 처리할 수 있습니다.", ephemeral: true });
+    return interaction.reply({ content: "❌ 관리자만 처리할 수 있습니다.", flags: MessageFlags.Ephemeral });
   }
 
   if (action === "approve") {
@@ -149,7 +150,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (!hasAdminRole && !isServerAdmin) {
       return interaction.reply({
         content: `❌ 이 커맨드는 **${ADMIN_ROLE_NAME}** 역할이 필요합니다.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   }
@@ -158,7 +159,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     await command.execute(interaction);
   } catch (error) {
     console.error(`❌ /${interaction.commandName} 오류:`, error);
-    const errorMsg = { content: "❌ 커맨드 실행 중 오류가 발생했습니다.", ephemeral: true };
+    const errorMsg = { content: "❌ 커맨드 실행 중 오류가 발생했습니다.", flags: MessageFlags.Ephemeral };
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp(errorMsg);
     } else {

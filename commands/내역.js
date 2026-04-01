@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { getUserAllFines, getUserUnpaidFines } = require("../database");
 
 module.exports = {
@@ -31,7 +31,7 @@ module.exports = {
         content: showAll
           ? `✅ <@${target.id}>의 벌금 내역이 없습니다.`
           : `✅ <@${target.id}>의 미납 벌금이 없습니다.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -74,6 +74,6 @@ module.exports = {
       });
     }
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };

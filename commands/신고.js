@@ -2,6 +2,7 @@ const {
   ContextMenuCommandBuilder,
   ApplicationCommandType,
   EmbedBuilder,
+  MessageFlags,
 } = require("discord.js");
 const { addFine, getFineAmount } = require("../database");
 
@@ -18,10 +19,10 @@ module.exports = {
     const reporter = interaction.user;
 
     if (target.id === reporter.id) {
-      return interaction.reply({ content: "❌ 자신의 메시지는 신고할 수 없습니다.", ephemeral: true });
+      return interaction.reply({ content: "❌ 자신의 메시지는 신고할 수 없습니다.", flags: MessageFlags.Ephemeral });
     }
     if (target.bot) {
-      return interaction.reply({ content: "❌ 봇의 메시지는 신고할 수 없습니다.", ephemeral: true });
+      return interaction.reply({ content: "❌ 봇의 메시지는 신고할 수 없습니다.", flags: MessageFlags.Ephemeral });
     }
 
     const fineAmount = getFineAmount();

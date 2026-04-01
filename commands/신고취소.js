@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { cancelFine, getFineById } = require("../database");
 
 module.exports = {
@@ -24,14 +24,14 @@ module.exports = {
     if (!fine) {
       return interaction.reply({
         content: `❌ ID **#${id}**에 해당하는 벌금 기록이 없습니다.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
     if (fine.status === "rejected") {
       return interaction.reply({
         content: `⚠️ 벌금 **#${id}**는 이미 취소된 상태입니다.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -53,6 +53,6 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "💰 수금봇" });
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };

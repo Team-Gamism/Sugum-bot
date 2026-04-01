@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { getFineAmount, setSetting } = require("../database");
 
 const MIN_AMOUNT = 100;
@@ -50,6 +50,6 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "💰 수금봇" });
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };

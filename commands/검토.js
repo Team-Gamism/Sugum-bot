@@ -4,6 +4,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  MessageFlags,
 } = require("discord.js");
 const { getPendingReports } = require("../database");
 
@@ -19,12 +20,12 @@ module.exports = {
     const reports = getPendingReports();
 
     if (reports.length === 0) {
-      return interaction.reply({ content: "✅ 검토 대기 중인 신고가 없습니다.", ephemeral: true });
+      return interaction.reply({ content: "✅ 검토 대기 중인 신고가 없습니다.", flags: MessageFlags.Ephemeral });
     }
 
     await interaction.reply({
       content: `📋 검토 대기 중인 신고 **${reports.length}건**입니다.`,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     // 신고 항목을 하나씩 개별 메시지로 전송 (버튼 포함)
@@ -55,7 +56,7 @@ module.exports = {
           .setStyle(ButtonStyle.Danger)
       );
 
-      await interaction.followUp({ embeds: [embed], components: [row], ephemeral: true });
+      await interaction.followUp({ embeds: [embed], components: [row], flags: MessageFlags.Ephemeral });
     }
   },
 };

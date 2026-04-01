@@ -1,8 +1,15 @@
 // Node.js v22.5+ 내장 SQLite 사용 (외부 패키지 불필요)
 const { DatabaseSync } = require("node:sqlite");
 const path = require("path");
+const fs = require("fs");
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, "fines.db");
+
+const dbDir = path.dirname(DB_PATH);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new DatabaseSync(DB_PATH);
 
 // ── 테이블 초기화 ────────────────────────────────────────────────────────────

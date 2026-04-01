@@ -16,7 +16,6 @@ module.exports = {
     if (summary.length === 0) {
       return interaction.reply({
         content: "✅ 현재 미납 벌금이 없습니다. 모두 깨끗하네요!",
-        ephemeral: false,
       });
     }
 

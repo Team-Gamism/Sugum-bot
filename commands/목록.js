@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const { getAllUnpaidSummary } = require("../database");
 
 module.exports = {
@@ -15,7 +15,7 @@ module.exports = {
     if (summary.length === 0) {
       return interaction.reply({
         content: "✅ 미납 벌금이 없습니다!",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -43,6 +43,6 @@ module.exports = {
       inline: false,
     });
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };
