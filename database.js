@@ -2,7 +2,7 @@
 const { DatabaseSync } = require("node:sqlite");
 const path = require("path");
 
-const DB_PATH = path.join(__dirname, "fines.db");
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, "fines.db");
 const db = new DatabaseSync(DB_PATH);
 
 // ── 테이블 초기화 ────────────────────────────────────────────────────────────
