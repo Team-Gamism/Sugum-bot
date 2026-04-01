@@ -33,7 +33,7 @@ module.exports = {
     const content = reportedMessage.content || "(텍스트 없음)";
 
     // 메시지 내용 그대로 저장, 상태는 pending (관리자 검토 대기)
-    addFine({
+    const { lastInsertRowid: reportId } = addFine({
       userId: target.id,
       username: target.username,
       wordUsed: "[신고 접수]",
@@ -51,11 +51,10 @@ module.exports = {
         `<@${reporter.id}>님이 <@${target.id}>님의 메시지를 신고했습니다.\n` +
           `관리자 검토 후 벌금이 확정됩니다.`
       )
-      .addFields({
-        name: "📄 신고된 메시지 내용",
-        value: `> ${content.slice(0, 500)}`,
-        inline: false,
-      })
+      .addFields(
+        { name: "🔢 신고 ID", value: `#${reportId}`, inline: true },
+        { name: "📄 신고된 메시지 내용", value: `> ${content.slice(0, 500)}`, inline: false }
+      )
       .setTimestamp()
       .setFooter({ text: "💰 수금봇 | 허위 신고 시 책임은 신고자에게 있습니다" });
 

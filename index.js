@@ -59,7 +59,7 @@ client.on(Events.MessageCreate, async (message) => {
   const fineAmount = getFineAmount(); // 실시간으로 DB에서 읽어 최신 금액 반영
 
   const totalFine = words.length * fineAmount;
-  addFine({ userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content, messageId: message.id });
+  const { lastInsertRowid: fineId } = addFine({ userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content, messageId: message.id });
 
   const embed = new EmbedBuilder()
     .setTitle("🚨 욕설 감지!")
@@ -85,7 +85,7 @@ client.on(Events.MessageCreate, async (message) => {
         inline: true,
       }
     )
-    .setFooter({ text: `욕설 1회 = ${fineAmount.toLocaleString()}원 | /순위 로 현황 확인` })
+    .setFooter({ text: `벌금 ID: #${fineId} | 욕설 1회 = ${fineAmount.toLocaleString()}원 | /순위 로 현황 확인` })
     .setTimestamp();
 
   try {
