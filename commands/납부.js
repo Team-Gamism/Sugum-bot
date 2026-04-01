@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("납부")
     .setDescription("유저의 미납 벌금을 납부 처리합니다 (관리자 전용)")
+    .setDefaultMemberPermissions(0)
     .addUserOption((option) =>
       option.setName("유저").setDescription("납부 처리할 유저").setRequired(true)
     ),
@@ -42,6 +43,6 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "💰 수금봇" });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
   },
 };

@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("내역")
     .setDescription("특정 유저의 벌금 내역을 봅니다 (관리자 전용)")
+    .setDefaultMemberPermissions(0)
     .addUserOption((option) =>
       option.setName("유저").setDescription("조회할 유저").setRequired(true)
     )

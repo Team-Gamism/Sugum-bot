@@ -5,6 +5,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("신고취소")
     .setDescription("벌금 기록을 취소합니다 (관리자 전용)")
+    .setDefaultMemberPermissions(0)
     .addIntegerOption((option) =>
       option
         .setName("id")
@@ -52,6 +53,6 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "💰 수금봇" });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
   },
 };

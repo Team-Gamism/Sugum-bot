@@ -4,7 +4,8 @@ const { getAllUnpaidSummary } = require("../database");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("목록")
-    .setDescription("미납 벌금 전체 목록을 봅니다 (관리자 전용)"),
+    .setDescription("미납 벌금 전체 목록을 봅니다 (관리자 전용)")
+    .setDefaultMemberPermissions(0),
 
   adminOnly: true,
 

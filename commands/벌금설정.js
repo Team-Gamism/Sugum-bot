@@ -8,6 +8,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("벌금설정")
     .setDescription("욕설 1회당 벌금 금액을 변경합니다 (관리자 전용)")
+    .setDefaultMemberPermissions(0)
     .addIntegerOption((option) =>
       option
         .setName("금액")
@@ -49,6 +50,6 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "💰 수금봇" });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], ephemeral: true });
   },
 };

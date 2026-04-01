@@ -4,7 +4,8 @@ const { getStats, getAllCaughtUsers, getFineAmount } = require("../database");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("통계")
-    .setDescription("전체 벌금 통계를 봅니다 (관리자 전용)"),
+    .setDescription("전체 벌금 통계를 봅니다 (관리자 전용)")
+    .setDefaultMemberPermissions(0),
 
   adminOnly: true,
 
