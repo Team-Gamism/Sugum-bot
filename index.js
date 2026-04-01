@@ -66,6 +66,11 @@ client.on(Events.MessageCreate, async (message) => {
     )
     .addFields(
       {
+        name: "💬 원본 메시지",
+        value: `\`\`\`${message.content}\`\`\``,
+        inline: false,
+      },
+      {
         name: "🤬 감지된 욕설",
         value: words.map((w) => `\`${w}\``).join(", "),
         inline: true,
