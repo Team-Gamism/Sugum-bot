@@ -199,9 +199,26 @@ function getWordRanking() {
     .all();
 }
 
+/**
+ * 전체 적발 유저 목록 (납부 여부 무관)
+ */
+function getAllCaughtUsers() {
+  return db
+    .prepare(
+      `SELECT user_id, username, COUNT(*) AS count, SUM(amount) AS total,
+              SUM(CASE WHEN paid = 0 THEN amount ELSE 0 END) AS unpaid
+       FROM fines
+       WHERE status IN ('auto', 'approved')
+       GROUP BY user_id
+       ORDER BY count DESC`
+    )
+    .all();
+}
+
 module.exports = {
   addFine,
   getAllUnpaidSummary,
+  getAllCaughtUsers,
   getUserUnpaidFines,
   getUserAllFines,
   markUserPaid,

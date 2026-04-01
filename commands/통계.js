@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
-const { getStats, getWordRanking, getFineAmount } = require("../database");
+const { getStats, getAllCaughtUsers, getFineAmount } = require("../database");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -10,7 +10,7 @@ module.exports = {
 
   async execute(interaction) {
     const stats = getStats();
-    const words = getWordRanking();
+    const caughtUsers = getAllCaughtUsers();
 
     const embed = new EmbedBuilder()
       .setTitle("📊 전체 벌금 통계")
@@ -60,13 +60,16 @@ module.exports = {
       }
     );
 
-    if (words.length > 0) {
-      const wordList = words
-        .map((w, i) => `**${i + 1}.** \`${w.word_used}\` — ${w.count}회`)
+    if (caughtUsers.length > 0) {
+      const userList = caughtUsers
+        .map((u, i) => {
+          const unpaidMark = u.unpaid > 0 ? ` *(미납 ${u.unpaid.toLocaleString()}원)*` : "";
+          return `**${i + 1}.** <@${u.user_id}> (${u.username}) — ${u.count}회 / ${u.total.toLocaleString()}원${unpaidMark}`;
+        })
         .join("\n");
       embed.addFields({
-        name: "🤬 자주 사용된 욕설 TOP 10",
-        value: wordList,
+        name: "👥 적발된 유저 목록",
+        value: userList,
         inline: false,
       });
     }
