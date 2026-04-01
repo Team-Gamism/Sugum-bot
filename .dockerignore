@@ -1,0 +1,4 @@
+node_modules
+.env
+fines.db
+.git

@@ -54,11 +54,8 @@ client.on(Events.MessageCreate, async (message) => {
   const username = message.author.username;
   const fineAmount = getFineAmount(); // 실시간으로 DB에서 읽어 최신 금액 반영
 
-  for (const word of words) {
-    addFine({ userId, username, wordUsed: word, amount: fineAmount, messageContent: message.content });
-  }
-
   const totalFine = words.length * fineAmount;
+  addFine({ userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content });
 
   const embed = new EmbedBuilder()
     .setTitle("🚨 욕설 감지!")
@@ -166,7 +163,21 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 // ── 봇 시작 ─────────────────────────────────────────────────────────────────
-client.login(process.env.DISCORD_TOKEN).catch((err) => {
-  console.error("❌ 봇 로그인 실패:", err.message);
+const token = process.env.DISCORD_TOKEN;
+console.log(`🔑 DISCORD_TOKEN 상태: ${token === undefined ? "undefined (미설정)" : token === "" ? "빈 문자열" : `설정됨 (앞 10자: ${token.slice(0, 10)}...)`}`);
+
+client.login(token).catch((err) => {
+  console.error("❌ 봇 로그인 실패");
+  console.error(`  message : ${err.message}`);
+  console.error(`  code    : ${err.code ?? "없음"}`);
+  console.error(`  status  : ${err.status ?? err.httpStatus ?? "없음"}`);
+  console.error(`  type    : ${err.constructor?.name ?? typeof err}`);
+
+  if (!token) {
+    console.error("  원인   : DISCORD_TOKEN 환경변수가 설정되지 않았습니다. Railway Variables에서 추가하세요.");
+  } else if (/invalid token/i.test(err.message)) {
+    console.error("  원인   : 토큰 값이 유효하지 않습니다. Discord Developer Portal에서 토큰을 재발급하고 Railway Variables를 업데이트하세요.");
+  }
+
   process.exit(1);
 });
