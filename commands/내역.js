@@ -57,7 +57,8 @@ module.exports = {
       const msgPreview = fine.message_content
         ? `> ${fine.message_content.slice(0, 80)}${fine.message_content.length > 80 ? "…" : ""}`
         : `> \`${fine.word_used}\``;
-      description += `${status} ${fine.amount.toLocaleString()}원 (${date})${source}\n${msgPreview}\n\n`;
+      description += `**#${fine.id}** | ${status} | **${fine.amount.toLocaleString()}원** | ${date}${source}\n`;
+      description += `> ${msgPreview}\n\n`;
     }
 
     if (fines.length > 15) {
