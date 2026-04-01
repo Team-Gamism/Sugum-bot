@@ -4,7 +4,7 @@ const {
   EmbedBuilder,
   MessageFlags,
 } = require("discord.js");
-const { addFine, getFineAmount } = require("../database");
+const { addFine, findFineByMessageId, getFineAmount } = require("../database");
 
 module.exports = {
   data: new ContextMenuCommandBuilder()
@@ -25,6 +25,10 @@ module.exports = {
       return interaction.reply({ content: "❌ 봇의 메시지는 신고할 수 없습니다.", flags: MessageFlags.Ephemeral });
     }
 
+    if (findFineByMessageId(reportedMessage.id)) {
+      return interaction.reply({ content: "⚠️ 이 메시지는 이미 신고 또는 자동 감지된 상태입니다.", flags: MessageFlags.Ephemeral });
+    }
+
     const fineAmount = getFineAmount();
     const content = reportedMessage.content || "(텍스트 없음)";
 
@@ -34,6 +38,7 @@ module.exports = {
       username: target.username,
       wordUsed: "[신고 접수]",
       messageContent: content,
+      messageId: reportedMessage.id,
       amount: fineAmount,
       reporterId: reporter.id,
       status: "pending",

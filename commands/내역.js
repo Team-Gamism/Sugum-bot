@@ -49,16 +49,18 @@ module.exports = {
     // 최근 15건만 표시 (임베드 글자 제한)
     const display = fines.slice(0, 15);
     let description = "";
-
     for (const fine of display) {
-      const status = fine.paid ? "~~납부~~" : "**미납**";
-      const date = fine.created_at.slice(0, 16);
-      const source = fine.reporter_id ? ` 📢<@${fine.reporter_id}>신고` : "";
-      const msgPreview = fine.message_content
-        ? `> ${fine.message_content.slice(0, 80)}${fine.message_content.length > 80 ? "…" : ""}`
-        : `> \`${fine.word_used}\``;
-      description += `**#${fine.id}** | ${status} | **${fine.amount.toLocaleString()}원** | ${date}${source}\n`;
-      description += `> ${msgPreview}\n\n`;
+      const statusEmoji = fine.paid ? "✅" : "⚠️";
+      const statusText = fine.paid ? "~~납부 완료~~" : "**미납**";
+
+      const date = fine.created_at.slice(5, 16);
+      const source = fine.reporter_id ? ` | 📢 <@${fine.reporter_id}>` : " | 🤖 자동";
+
+      const content = fine.message_content || `감지된 단어: ${fine.word_used}`;
+      const msgPreview = `> ${content.slice(0, 50)}${content.length > 50 ? "..." : ""}`;
+      
+      description += `\`#${fine.id}\` ${statusEmoji} ${statusText} │ **${fine.amount.toLocaleString()}원**\n`;
+      description += `└ \`${date}\`${source}\n${msgPreview}\n\n`;
     }
 
     if (fines.length > 15) {

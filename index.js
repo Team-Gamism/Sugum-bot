@@ -10,7 +10,7 @@ const {
 const fs = require("fs");
 const path = require("path");
 const { detectProfanity } = require("./profanityList");
-const { addFine, getFineAmount, approveReport, rejectReport } = require("./database");
+const { addFine, findFineByMessageId, getFineAmount, approveReport, rejectReport } = require("./database");
 
 const ADMIN_ROLE_NAME = process.env.ADMIN_ROLE_NAME || "관리자";
 
@@ -51,12 +51,15 @@ client.on(Events.MessageCreate, async (message) => {
   const { detected, words } = detectProfanity(message.content);
   if (!detected) return;
 
+  // 이미 처리된 메시지면 중복 감지 방지
+  if (findFineByMessageId(message.id)) return;
+
   const userId = message.author.id;
   const username = message.author.username;
   const fineAmount = getFineAmount(); // 실시간으로 DB에서 읽어 최신 금액 반영
 
   const totalFine = words.length * fineAmount;
-  addFine({ userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content });
+  addFine({ userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content, messageId: message.id });
 
   const embed = new EmbedBuilder()
     .setTitle("🚨 욕설 감지!")

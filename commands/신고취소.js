@@ -4,8 +4,7 @@ const { cancelFine, getFineById } = require("../database");
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("신고취소")
-    .setDescription("벌금 기록을 취소합니다 (관리자 전용)")
-    .setDefaultMemberPermissions(0)
+    .setDescription("신고를 취소합니다. 관리자는 모든 기록을, 일반 유저는 자신의 대기 중 신고만 취소 가능합니다.")
     .addIntegerOption((option) =>
       option
         .setName("id")
@@ -14,10 +13,15 @@ module.exports = {
         .setMinValue(1)
     ),
 
-  adminOnly: true,
+  adminOnly: false,
 
   async execute(interaction) {
     const id = interaction.options.getInteger("id");
+    const ADMIN_ROLE_NAME = process.env.ADMIN_ROLE_NAME || "관리자";
+    const member = interaction.member;
+    const isAdmin =
+      member.roles.cache.some((r) => r.name === ADMIN_ROLE_NAME) ||
+      member.permissions.has("Administrator");
 
     const fine = getFineById(id);
 
@@ -33,6 +37,22 @@ module.exports = {
         content: `⚠️ 벌금 **#${id}**는 이미 취소된 상태입니다.`,
         flags: MessageFlags.Ephemeral,
       });
+    }
+
+    // 일반 유저: 자신이 신고한 pending 기록만 취소 가능
+    if (!isAdmin) {
+      if (fine.reporter_id !== interaction.user.id) {
+        return interaction.reply({
+          content: `❌ 자신이 신고한 기록만 취소할 수 있습니다.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
+      if (fine.status !== "pending") {
+        return interaction.reply({
+          content: `❌ 이미 처리된 신고는 취소할 수 없습니다. 관리자에게 문의하세요.`,
+          flags: MessageFlags.Ephemeral,
+        });
+      }
     }
 
     cancelFine(id);

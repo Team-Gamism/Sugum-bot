@@ -41,6 +41,7 @@ for (const col of [
   `ALTER TABLE fines ADD COLUMN reporter_id TEXT`,
   `ALTER TABLE fines ADD COLUMN status TEXT NOT NULL DEFAULT 'auto'`,
   `ALTER TABLE fines ADD COLUMN message_content TEXT`,
+  `ALTER TABLE fines ADD COLUMN message_id TEXT`,
 ]) {
   try { db.exec(col); } catch { /* 이미 존재하면 무시 */ }
 }
@@ -65,16 +66,27 @@ function getFineAmount() {
  * 벌금/신고 기록 추가
  * @param {{
  *   userId: string, username: string, wordUsed: string, amount: number,
- *   messageContent?: string, reporterId?: string, status?: 'auto'|'pending'
+ *   messageContent?: string, messageId?: string, reporterId?: string, status?: 'auto'|'pending'
  * }} param
  */
-function addFine({ userId, username, wordUsed, amount, messageContent = null, reporterId = null, status = "auto" }) {
+function addFine({ userId, username, wordUsed, amount, messageContent = null, messageId = null, reporterId = null, status = "auto" }) {
   return db
     .prepare(
-      `INSERT INTO fines (user_id, username, word_used, amount, message_content, reporter_id, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO fines (user_id, username, word_used, amount, message_content, message_id, reporter_id, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(userId, username, wordUsed, amount, messageContent, reporterId, status);
+    .run(userId, username, wordUsed, amount, messageContent, messageId, reporterId, status);
+}
+
+/**
+ * Discord 메시지 ID로 이미 처리된 벌금/신고가 있는지 확인
+ * @param {string} messageId
+ * @returns {object|undefined}
+ */
+function findFineByMessageId(messageId) {
+  return db
+    .prepare(`SELECT id, status FROM fines WHERE message_id = ? AND status != 'rejected'`)
+    .get(messageId);
 }
 
 /**
@@ -224,6 +236,7 @@ function getAllCaughtUsers() {
 
 module.exports = {
   addFine,
+  findFineByMessageId,
   getAllUnpaidSummary,
   getAllCaughtUsers,
   getUserUnpaidFines,
