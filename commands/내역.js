@@ -23,8 +23,8 @@ module.exports = {
     const showAll = interaction.options.getBoolean("전체") ?? false;
 
     const fines = showAll
-      ? getUserAllFines(target.id)
-      : getUserUnpaidFines(target.id);
+      ? getUserAllFines(interaction.guildId, target.id)
+      : getUserUnpaidFines(interaction.guildId, target.id);
 
     if (fines.length === 0) {
       return interaction.reply({

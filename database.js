@@ -16,6 +16,7 @@ const db = new DatabaseSync(DB_PATH);
 db.exec(`
   CREATE TABLE IF NOT EXISTS fines (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id        TEXT    NOT NULL DEFAULT '',
     user_id         TEXT    NOT NULL,
     username        TEXT    NOT NULL,
     word_used       TEXT    NOT NULL,
@@ -28,13 +29,12 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL
+    guild_id  TEXT NOT NULL DEFAULT '',
+    key       TEXT NOT NULL,
+    value     TEXT NOT NULL,
+    PRIMARY KEY (guild_id, key)
   );
 `);
-
-// 기본 설정값 삽입 (이미 있으면 무시)
-db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('fine_amount', '5000')`).run();
 
 // 기존 DB 마이그레이션 (컬럼이 없을 때만 추가)
 for (const col of [
@@ -42,22 +42,51 @@ for (const col of [
   `ALTER TABLE fines ADD COLUMN status TEXT NOT NULL DEFAULT 'auto'`,
   `ALTER TABLE fines ADD COLUMN message_content TEXT`,
   `ALTER TABLE fines ADD COLUMN message_id TEXT`,
+  `ALTER TABLE fines ADD COLUMN guild_id TEXT NOT NULL DEFAULT ''`,
 ]) {
   try { db.exec(col); } catch { /* 이미 존재하면 무시 */ }
 }
 
+try { db.exec(`CREATE INDEX IF NOT EXISTS idx_fines_guild ON fines(guild_id)`); } catch {}
+
+// settings 테이블 guild_id 마이그레이션 (기존 DB에 guild_id 컬럼 없는 경우)
+const settingsCols = db.prepare(`PRAGMA table_info(settings)`).all();
+if (!settingsCols.some(c => c.name === 'guild_id')) {
+  db.exec(`
+    ALTER TABLE settings RENAME TO settings_old;
+    CREATE TABLE settings (
+      guild_id  TEXT NOT NULL DEFAULT '',
+      key       TEXT NOT NULL,
+      value     TEXT NOT NULL,
+      PRIMARY KEY (guild_id, key)
+    );
+    INSERT INTO settings (guild_id, key, value) SELECT '', key, value FROM settings_old;
+    DROP TABLE settings_old;
+  `);
+}
+
+// 기본 설정값 삽입 (이미 있으면 무시) — 마이그레이션 이후 실행
+db.prepare(`INSERT OR IGNORE INTO settings (guild_id, key, value) VALUES ('', 'fine_amount', '5000')`).run();
+db.prepare(`INSERT OR IGNORE INTO settings (guild_id, key, value) VALUES ('', 'false_report_threshold', '3')`).run();
+
 // ── 설정 ─────────────────────────────────────────────────────────────────────
 
-function getSetting(key) {
-  return db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key)?.value;
+function getSetting(guildId, key) {
+  const row = db.prepare(`SELECT value FROM settings WHERE guild_id = ? AND key = ?`).get(guildId, key);
+  if (row) return row.value;
+  return db.prepare(`SELECT value FROM settings WHERE guild_id = '' AND key = ?`).get(key)?.value;
 }
 
-function setSetting(key, value) {
-  db.prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`).run(key, String(value));
+function setSetting(guildId, key, value) {
+  db.prepare(`INSERT OR REPLACE INTO settings (guild_id, key, value) VALUES (?, ?, ?)`).run(guildId, key, String(value));
 }
 
-function getFineAmount() {
-  return parseInt(getSetting("fine_amount") || "5000", 10);
+function getFineAmount(guildId) {
+  return parseInt(getSetting(guildId, "fine_amount") || "5000", 10);
+}
+
+function getFalseReportThreshold(guildId) {
+  return parseInt(getSetting(guildId, "false_report_threshold") || "3", 10);
 }
 
 // ── 벌금 CRUD ────────────────────────────────────────────────────────────────
@@ -65,80 +94,81 @@ function getFineAmount() {
 /**
  * 벌금/신고 기록 추가
  * @param {{
- *   userId: string, username: string, wordUsed: string, amount: number,
+ *   guildId: string, userId: string, username: string, wordUsed: string, amount: number,
  *   messageContent?: string, messageId?: string, reporterId?: string, status?: 'auto'|'pending'
  * }} param
  */
-function addFine({ userId, username, wordUsed, amount, messageContent = null, messageId = null, reporterId = null, status = "auto" }) {
+function addFine({ guildId, userId, username, wordUsed, amount, messageContent = null, messageId = null, reporterId = null, status = "auto" }) {
   return db
     .prepare(
-      `INSERT INTO fines (user_id, username, word_used, amount, message_content, message_id, reporter_id, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO fines (guild_id, user_id, username, word_used, amount, message_content, message_id, reporter_id, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .run(userId, username, wordUsed, amount, messageContent, messageId, reporterId, status);
+    .run(guildId, userId, username, wordUsed, amount, messageContent, messageId, reporterId, status);
 }
 
 /**
  * Discord 메시지 ID로 이미 처리된 벌금/신고가 있는지 확인
+ * @param {string} guildId
  * @param {string} messageId
  * @returns {object|undefined}
  */
-function findFineByMessageId(messageId) {
+function findFineByMessageId(guildId, messageId) {
   return db
-    .prepare(`SELECT id, status FROM fines WHERE message_id = ? AND status != 'rejected'`)
-    .get(messageId);
+    .prepare(`SELECT id, status FROM fines WHERE guild_id = ? AND message_id = ? AND status != 'rejected'`)
+    .get(guildId, messageId);
 }
 
 /**
  * 전체 미납 벌금 목록 — auto/approved 만 집계
  */
-function getAllUnpaidSummary() {
+function getAllUnpaidSummary(guildId) {
   return db
     .prepare(
       `SELECT user_id, username, COUNT(*) AS count, SUM(amount) AS total
        FROM fines
-       WHERE paid = 0 AND status IN ('auto', 'approved')
+       WHERE guild_id = ? AND paid = 0 AND status IN ('auto', 'approved')
        GROUP BY user_id
        ORDER BY total DESC`
     )
-    .all();
+    .all(guildId);
 }
 
 /**
  * 특정 유저의 미납 벌금 상세 내역 — auto/approved 만
  */
-function getUserUnpaidFines(userId) {
+function getUserUnpaidFines(guildId, userId) {
   return db
     .prepare(
       `SELECT id, word_used, message_content, amount, reporter_id, status, created_at
        FROM fines
-       WHERE user_id = ? AND paid = 0 AND status IN ('auto', 'approved')
+       WHERE guild_id = ? AND user_id = ? AND paid = 0 AND status IN ('auto', 'approved')
        ORDER BY created_at DESC`
     )
-    .all(userId);
+    .all(guildId, userId);
 }
 
 /**
  * 특정 유저의 전체 벌금 내역 (납부 포함, 모든 상태)
  */
-function getUserAllFines(userId) {
+function getUserAllFines(guildId, userId) {
   return db
     .prepare(
       `SELECT id, word_used, message_content, amount, paid, reporter_id, status, created_at
        FROM fines
-       WHERE user_id = ?
+       WHERE guild_id = ? AND user_id = ?
        ORDER BY created_at DESC`
     )
-    .all(userId);
+    .all(guildId, userId);
 }
 
 /**
  * 특정 유저의 미납 벌금 납부 처리 — auto/approved 만
  */
-function markUserPaid(userId) {
+function markUserPaid(guildId, userId) {
   return db
-    .prepare(`UPDATE fines SET paid = 1 WHERE user_id = ? AND paid = 0 AND status IN ('auto', 'approved')`)
-    .run(userId).changes;
+    .prepare(`UPDATE fines SET paid = 1 WHERE guild_id = ? AND user_id = ? AND paid = 0 AND status IN ('auto', 'approved')`)
+    .run(guildId, userId).changes;
 }
 
 // ── 신고 검토 ─────────────────────────────────────────────────────────────────
@@ -146,15 +176,15 @@ function markUserPaid(userId) {
 /**
  * 검토 대기 중인 신고 목록
  */
-function getPendingReports() {
+function getPendingReports(guildId) {
   return db
     .prepare(
       `SELECT id, user_id, username, message_content, reporter_id, amount, created_at
        FROM fines
-       WHERE status = 'pending'
+       WHERE guild_id = ? AND status = 'pending'
        ORDER BY created_at ASC`
     )
-    .all();
+    .all(guildId);
 }
 
 /**
@@ -173,10 +203,10 @@ function rejectReport(id) {
 
 /**
  * 벌금 강제 취소 (관리자) — pending/auto/approved 모두 가능
- * @returns {number} 변경된 행 수 (0이면 이미 rejected이거나 없는 ID)
+ * @returns {number} 변경된 행 수 (0이면 이미 rejected이거나 없는 ID 또는 타 길드)
  */
-function cancelFine(id) {
-  return db.prepare(`UPDATE fines SET status = 'rejected' WHERE id = ? AND status != 'rejected'`).run(id).changes;
+function cancelFine(guildId, id) {
+  return db.prepare(`UPDATE fines SET status = 'rejected' WHERE id = ? AND guild_id = ? AND status != 'rejected'`).run(id, guildId).changes;
 }
 
 /**
@@ -186,9 +216,19 @@ function getFineById(id) {
   return db.prepare(`SELECT * FROM fines WHERE id = ?`).get(id);
 }
 
+/**
+ * 특정 신고자의 기각된 신고 수
+ */
+function getReporterRejectedCount(guildId, reporterId) {
+  const row = db
+    .prepare(`SELECT COUNT(*) AS count FROM fines WHERE guild_id = ? AND reporter_id = ? AND status = 'rejected'`)
+    .get(guildId, reporterId);
+  return row?.count ?? 0;
+}
+
 // ── 통계 ─────────────────────────────────────────────────────────────────────
 
-function getStats() {
+function getStats(guildId) {
   return db
     .prepare(
       `SELECT
@@ -200,38 +240,39 @@ function getStats() {
         SUM(CASE WHEN status = 'pending'  THEN 1 ELSE 0 END)           AS pending_count,
         SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END)           AS rejected_count,
         COUNT(CASE WHEN reporter_id IS NOT NULL THEN 1 END)            AS reported_count
-       FROM fines`
+       FROM fines
+       WHERE guild_id = ?`
     )
-    .get();
+    .get(guildId);
 }
 
-function getWordRanking() {
+function getWordRanking(guildId) {
   return db
     .prepare(
       `SELECT word_used, COUNT(*) AS count
        FROM fines
-       WHERE status IN ('auto', 'approved')
+       WHERE guild_id = ? AND status IN ('auto', 'approved')
        GROUP BY word_used
        ORDER BY count DESC
        LIMIT 10`
     )
-    .all();
+    .all(guildId);
 }
 
 /**
  * 전체 적발 유저 목록 (납부 여부 무관)
  */
-function getAllCaughtUsers() {
+function getAllCaughtUsers(guildId) {
   return db
     .prepare(
       `SELECT user_id, username, COUNT(*) AS count, SUM(amount) AS total,
               SUM(CASE WHEN paid = 0 THEN amount ELSE 0 END) AS unpaid
        FROM fines
-       WHERE status IN ('auto', 'approved')
+       WHERE guild_id = ? AND status IN ('auto', 'approved')
        GROUP BY user_id
        ORDER BY count DESC`
     )
-    .all();
+    .all(guildId);
 }
 
 module.exports = {
@@ -247,9 +288,11 @@ module.exports = {
   rejectReport,
   cancelFine,
   getFineById,
+  getReporterRejectedCount,
   getStats,
   getWordRanking,
   getSetting,
   setSetting,
   getFineAmount,
+  getFalseReportThreshold,
 };

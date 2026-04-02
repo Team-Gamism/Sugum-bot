@@ -25,7 +25,7 @@ module.exports = {
 
     const fine = getFineById(id);
 
-    if (!fine) {
+    if (!fine || fine.guild_id !== interaction.guildId) {
       return interaction.reply({
         content: `❌ ID **#${id}**에 해당하는 벌금 기록이 없습니다.`,
         flags: MessageFlags.Ephemeral,
@@ -55,7 +55,7 @@ module.exports = {
       }
     }
 
-    cancelFine(id);
+    cancelFine(interaction.guildId, id);
 
     const statusLabel = { auto: "자동 감지", pending: "신고 대기", approved: "신고 승인" };
 

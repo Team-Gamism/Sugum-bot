@@ -25,15 +25,16 @@ module.exports = {
       return interaction.reply({ content: "❌ 봇의 메시지는 신고할 수 없습니다.", flags: MessageFlags.Ephemeral });
     }
 
-    if (findFineByMessageId(reportedMessage.id)) {
+    if (findFineByMessageId(interaction.guildId, reportedMessage.id)) {
       return interaction.reply({ content: "⚠️ 이 메시지는 이미 신고 또는 자동 감지된 상태입니다.", flags: MessageFlags.Ephemeral });
     }
 
-    const fineAmount = getFineAmount();
+    const fineAmount = getFineAmount(interaction.guildId);
     const content = reportedMessage.content || "(텍스트 없음)";
 
     // 메시지 내용 그대로 저장, 상태는 pending (관리자 검토 대기)
     const { lastInsertRowid: reportId } = addFine({
+      guildId: interaction.guildId,
       userId: target.id,
       username: target.username,
       wordUsed: "[신고 접수]",

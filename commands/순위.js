@@ -11,7 +11,7 @@ module.exports = {
   adminOnly: false,
 
   async execute(interaction) {
-    const summary = getAllUnpaidSummary();
+    const summary = getAllUnpaidSummary(interaction.guildId);
 
     if (summary.length === 0) {
       return interaction.reply({

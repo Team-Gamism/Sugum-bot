@@ -10,7 +10,7 @@ const {
 const fs = require("fs");
 const path = require("path");
 const { detectProfanity } = require("./profanityList");
-const { addFine, findFineByMessageId, getFineAmount, approveReport, rejectReport } = require("./database");
+const { addFine, findFineByMessageId, getFineAmount, approveReport, rejectReport, getFineById, getReporterRejectedCount, getFalseReportThreshold } = require("./database");
 
 const ADMIN_ROLE_NAME = process.env.ADMIN_ROLE_NAME || "관리자";
 
@@ -36,10 +36,9 @@ for (const file of commandFiles) {
 
 // ── 봇 준비 ─────────────────────────────────────────────────────────────────
 client.once(Events.ClientReady, (c) => {
-  const fineAmount = getFineAmount();
   console.log(`✅ 봇 로그인: ${c.user.tag}`);
   console.log(`📡 ${c.guilds.cache.size}개 서버에 연결됨`);
-  console.log(`💰 현재 벌금: ${fineAmount.toLocaleString()}원`);
+  console.log(`💰 벌금 설정: 길드별 설정`);
   c.user.setActivity("욕설 감시 중 👀", { type: 3 }); // WATCHING
 });
 
@@ -52,14 +51,14 @@ client.on(Events.MessageCreate, async (message) => {
   if (!detected) return;
 
   // 이미 처리된 메시지면 중복 감지 방지
-  if (findFineByMessageId(message.id)) return;
+  if (findFineByMessageId(message.guild.id, message.id)) return;
 
   const userId = message.author.id;
   const username = message.author.username;
-  const fineAmount = getFineAmount(); // 실시간으로 DB에서 읽어 최신 금액 반영
+  const fineAmount = getFineAmount(message.guild.id); // 실시간으로 DB에서 읽어 최신 금액 반영
 
   const totalFine = words.length * fineAmount;
-  const { lastInsertRowid: fineId } = addFine({ userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content, messageId: message.id });
+  const { lastInsertRowid: fineId } = addFine({ guildId: message.guild.id, userId, username, wordUsed: message.content, amount: totalFine, messageContent: message.content, messageId: message.id });
 
   const embed = new EmbedBuilder()
     .setTitle("🚨 욕설 감지!")
@@ -123,15 +122,48 @@ client.on(Events.InteractionCreate, async (interaction) => {
       embeds: [],
     });
   } else {
+    const fine = getFineById(Number(id));
     const changed = rejectReport(Number(id));
     if (!changed) {
       return interaction.update({ content: `⚠️ 신고 #${id}는 이미 처리되었습니다.`, components: [], embeds: [] });
     }
+
     await interaction.update({
       content: `❌ 신고 #${id} **기각** — 벌금이 취소되었습니다.`,
       components: [],
       embeds: [],
     });
+
+    // 허위 신고 벌금 처리
+    if (fine?.reporter_id) {
+      const rejectedCount = getReporterRejectedCount(interaction.guild.id, fine.reporter_id);
+      const threshold = getFalseReportThreshold(interaction.guild.id);
+      if (rejectedCount % threshold === 0) {
+        const fineAmount = getFineAmount(interaction.guild.id);
+        const reporter = await interaction.guild.members.fetch(fine.reporter_id).catch(() => null);
+        const reporterUsername = reporter?.user.username ?? "unknown";
+        const { lastInsertRowid: falseFineId } = addFine({
+          guildId: interaction.guild.id,
+          userId: fine.reporter_id,
+          username: reporterUsername,
+          wordUsed: "[허위 신고]",
+          amount: fineAmount,
+          status: "auto",
+        });
+
+        const falseReportEmbed = new EmbedBuilder()
+          .setTitle("⚠️ 허위 신고 벌금 부과")
+          .setColor(0xe67e22)
+          .setDescription(
+            `<@${fine.reporter_id}>님의 허위 신고가 **${rejectedCount}회** 누적되었습니다.\n` +
+            `벌금 **${fineAmount.toLocaleString()}원**이 부과됩니다! (기준: ${threshold}회마다)`
+          )
+          .setFooter({ text: `벌금 ID: #${falseFineId} | 💰 수금봇` })
+          .setTimestamp();
+
+        await interaction.channel.send({ embeds: [falseReportEmbed] });
+      }
+    }
   }
 });
 

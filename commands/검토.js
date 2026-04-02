@@ -17,7 +17,7 @@ module.exports = {
   adminOnly: true,
 
   async execute(interaction) {
-    const reports = getPendingReports();
+    const reports = getPendingReports(interaction.guildId);
 
     if (reports.length === 0) {
       return interaction.reply({ content: "✅ 검토 대기 중인 신고가 없습니다.", flags: MessageFlags.Ephemeral });

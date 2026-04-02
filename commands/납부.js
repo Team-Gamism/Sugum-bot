@@ -16,7 +16,7 @@ module.exports = {
     const target = interaction.options.getUser("유저");
 
     // 납부 처리 전 금액 확인
-    const unpaidFines = getUserUnpaidFines(target.id);
+    const unpaidFines = getUserUnpaidFines(interaction.guildId, target.id);
     if (unpaidFines.length === 0) {
       return interaction.reply({
         content: `✅ <@${target.id}>는 미납 벌금이 없습니다.`,
@@ -27,7 +27,7 @@ module.exports = {
     const totalAmount = unpaidFines.reduce((sum, f) => sum + f.amount, 0);
     const count = unpaidFines.length;
 
-    const changed = markUserPaid(target.id);
+    const changed = markUserPaid(interaction.guildId, target.id);
 
     const embed = new EmbedBuilder()
       .setTitle("✅ 납부 처리 완료")

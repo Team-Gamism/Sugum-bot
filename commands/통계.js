@@ -10,8 +10,8 @@ module.exports = {
   adminOnly: true,
 
   async execute(interaction) {
-    const stats = getStats();
-    const caughtUsers = getAllCaughtUsers();
+    const stats = getStats(interaction.guildId);
+    const caughtUsers = getAllCaughtUsers(interaction.guildId);
 
     const embed = new EmbedBuilder()
       .setTitle("📊 전체 벌금 통계")
@@ -19,7 +19,7 @@ module.exports = {
       .setTimestamp()
       .setFooter({ text: "💰 수금봇" });
 
-    const fineAmount = getFineAmount();
+    const fineAmount = getFineAmount(interaction.guildId);
 
     embed.addFields(
       {
