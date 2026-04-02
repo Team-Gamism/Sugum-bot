@@ -1,17 +1,19 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
-const { getStats, getAllCaughtUsers, getFineAmount } = require("../database");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags, PermissionFlagsBits } = require("discord.js");
+const { getStats, getAllCaughtUsers, getFineAmount, getFalseReportThreshold, getFalseReportFinesStats } = require("../database");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("통계")
     .setDescription("전체 벌금 통계를 봅니다 (관리자 전용)")
-    .setDefaultMemberPermissions(0),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   adminOnly: true,
 
   async execute(interaction) {
     const stats = getStats(interaction.guildId);
     const caughtUsers = getAllCaughtUsers(interaction.guildId);
+    const falseReportStats = getFalseReportFinesStats(interaction.guildId);
+    const falseReportThreshold = getFalseReportThreshold(interaction.guildId);
 
     const embed = new EmbedBuilder()
       .setTitle("📊 전체 벌금 통계")
@@ -28,11 +30,26 @@ module.exports = {
         inline: true,
       },
       {
+        name: "🚫 허위신고 임계값",
+        value: `**${falseReportThreshold}회마다 벌금**`,
+        inline: true,
+      },
+      { name: "\u200B", value: "\u200B", inline: true },
+      {
         name: "📢 신고 접수",
         value: `**${stats.reported_count}건**`,
         inline: true,
       },
-      { name: "\u200B", value: "\u200B", inline: true },
+      {
+        name: "❎ 신고 기각",
+        value: `**${stats.rejected_count}건**`,
+        inline: true,
+      },
+      {
+        name: "⚠️ 허위신고 벌금",
+        value: `**${falseReportStats.count}건 / ${falseReportStats.total.toLocaleString()}원**`,
+        inline: true,
+      },
       {
         name: "🔢 총 적발 건수",
         value: `**${stats.total_count}건**`,

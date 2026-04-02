@@ -260,6 +260,19 @@ function getWordRanking(guildId) {
 }
 
 /**
+ * 허위 신고 벌금 통계 (건수 + 합계)
+ */
+function getFalseReportFinesStats(guildId) {
+  return db
+    .prepare(
+      `SELECT COUNT(*) AS count, COALESCE(SUM(amount), 0) AS total
+       FROM fines
+       WHERE guild_id = ? AND word_used = '[허위 신고]' AND status IN ('auto', 'approved')`
+    )
+    .get(guildId);
+}
+
+/**
  * 전체 적발 유저 목록 (납부 여부 무관)
  */
 function getAllCaughtUsers(guildId) {
@@ -291,6 +304,7 @@ module.exports = {
   getReporterRejectedCount,
   getStats,
   getWordRanking,
+  getFalseReportFinesStats,
   getSetting,
   setSetting,
   getFineAmount,

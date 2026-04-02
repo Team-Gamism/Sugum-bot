@@ -1,11 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags, PermissionFlagsBits } = require("discord.js");
 const { getUserAllFines, getUserUnpaidFines } = require("../database");
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("내역")
     .setDescription("특정 유저의 벌금 내역을 봅니다 (관리자 전용)")
-    .setDefaultMemberPermissions(0)
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addUserOption((option) =>
       option.setName("유저").setDescription("조회할 유저").setRequired(true)
     )

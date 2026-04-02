@@ -5,6 +5,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
   MessageFlags,
+  PermissionFlagsBits,
 } = require("discord.js");
 const { getPendingReports } = require("../database");
 
@@ -12,7 +13,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("검토")
     .setDescription("신고 접수된 항목을 검토합니다 (관리자 전용)")
-    .setDefaultMemberPermissions(0),
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   adminOnly: true,
 

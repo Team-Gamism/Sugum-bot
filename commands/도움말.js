@@ -1,12 +1,10 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
-
-const ADMIN_ROLE_NAME = process.env.ADMIN_ROLE_NAME || "관리자";
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags, PermissionFlagsBits } = require("discord.js");
 
 const publicCommands = [
   { name: "/순위", desc: "미납 벌금 TOP 10 리더보드를 표시합니다." },
   {
     name: "신고 (메시지 우클릭 → 앱 → 신고)",
-    desc: "메시지를 욕설로 신고합니다. 관리자 검토 후 벌금이 부과됩니다.",
+    desc: "메시지를 욕설로 신고합니다. 관리자 검토 후 벌금이 부과됩니다. (허위 신고 누적 시 신고자에게도 벌금)",
   },
   { name: "/도움말", desc: "사용 가능한 커맨드 목록을 표시합니다." },
 ];
@@ -20,7 +18,7 @@ const adminCommands = [
   { name: "/납부 @유저", desc: "유저의 미납 벌금을 모두 납부 처리합니다." },
   { name: "/검토", desc: "대기 중인 신고 목록을 확인하고 승인/거절합니다." },
   { name: "/신고취소 [ID]", desc: "벌금 기록을 ID로 취소합니다." },
-  { name: "/벌금설정 [금액]", desc: "욕설 1회당 벌금 금액을 변경합니다. (100 ~ 1,000,000원)" },
+  { name: "/벌금설정 [금액] [허위신고임계값]", desc: "벌금 금액(100~1,000,000원) 또는 허위 신고 임계값(N회마다 신고자 벌금)을 변경합니다." },
   { name: "/통계", desc: "전체 통계 및 욕설 TOP 10 랭킹을 표시합니다." },
 ];
 
@@ -33,9 +31,7 @@ module.exports = {
 
   async execute(interaction) {
     const member = interaction.member;
-    const isAdmin =
-      member.roles.cache.some((r) => r.name === ADMIN_ROLE_NAME) ||
-      member.permissions.has("Administrator");
+    const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
     const embed = new EmbedBuilder()
       .setTitle("📖 수금봇 커맨드 도움말")
@@ -58,7 +54,7 @@ module.exports = {
     } else {
       embed.addFields({
         name: "🔒 관리자 전용",
-        value: `**${ADMIN_ROLE_NAME}** 역할이 있어야 사용할 수 있는 커맨드가 있습니다.`,
+        value: `관리자 권한이 있어야 사용할 수 있는 커맨드가 있습니다.`,
         inline: false,
       });
     }

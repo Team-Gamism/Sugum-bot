@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags, PermissionFlagsBits } = require("discord.js");
 const { cancelFine, getFineById } = require("../database");
 
 module.exports = {
@@ -17,11 +17,8 @@ module.exports = {
 
   async execute(interaction) {
     const id = interaction.options.getInteger("id");
-    const ADMIN_ROLE_NAME = process.env.ADMIN_ROLE_NAME || "관리자";
     const member = interaction.member;
-    const isAdmin =
-      member.roles.cache.some((r) => r.name === ADMIN_ROLE_NAME) ||
-      member.permissions.has("Administrator");
+    const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
     const fine = getFineById(id);
 

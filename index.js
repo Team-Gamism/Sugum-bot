@@ -6,13 +6,12 @@ const {
   EmbedBuilder,
   Events,
   MessageFlags,
+  PermissionFlagsBits,
 } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 const { detectProfanity } = require("./profanityList");
 const { addFine, findFineByMessageId, getFineAmount, approveReport, rejectReport, getFineById, getReporterRejectedCount, getFalseReportThreshold } = require("./database");
-
-const ADMIN_ROLE_NAME = process.env.ADMIN_ROLE_NAME || "관리자";
 
 // ── 클라이언트 설정 ──────────────────────────────────────────────────────────
 const client = new Client({
@@ -103,9 +102,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // 관리자 권한 확인
   const member = interaction.member;
-  const isAdmin =
-    member.roles.cache.some((r) => r.name === ADMIN_ROLE_NAME) ||
-    member.permissions.has("Administrator");
+  const isAdmin = member.permissions.has(PermissionFlagsBits.Administrator);
 
   if (!isAdmin) {
     return interaction.reply({ content: "❌ 관리자만 처리할 수 있습니다.", flags: MessageFlags.Ephemeral });
@@ -177,14 +174,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
   // 관리자 전용 커맨드 권한 확인
   if (command.adminOnly) {
     const member = interaction.member;
-    const hasAdminRole = member.roles.cache.some(
-      (role) => role.name === ADMIN_ROLE_NAME
-    );
-    const isServerAdmin = member.permissions.has("Administrator");
-
-    if (!hasAdminRole && !isServerAdmin) {
+    if (!member.permissions.has(PermissionFlagsBits.Administrator)) {
       return interaction.reply({
-        content: `❌ 이 커맨드는 **${ADMIN_ROLE_NAME}** 역할이 필요합니다.`,
+        content: "❌ 이 커맨드는 관리자 전용입니다.",
         flags: MessageFlags.Ephemeral,
       });
     }

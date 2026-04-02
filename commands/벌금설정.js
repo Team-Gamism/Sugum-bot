@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags, PermissionFlagsBits } = require("discord.js");
 const { getFineAmount, getFalseReportThreshold, setSetting } = require("../database");
 
 const MIN_AMOUNT = 100;
@@ -10,7 +10,7 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName("벌금설정")
     .setDescription("벌금 관련 설정을 변경합니다 (관리자 전용)")
-    .setDefaultMemberPermissions(0)
+    .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
     .addIntegerOption((option) =>
       option
         .setName("금액")
